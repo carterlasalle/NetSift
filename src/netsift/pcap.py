@@ -43,9 +43,7 @@ def read_capture(path: str | Path) -> Capture:
 def _read_pcap(stream: BinaryIO, magic: bytes) -> Capture:
     byte_order, resolution = _PCAP_MAGICS[magic]
     header = _exact(stream, 20, "PCAP global header")
-    major, minor, _zone, _sigfigs, snaplen, link_type = struct.unpack(
-        f"{byte_order}HHiiii", header
-    )
+    major, minor, _zone, _sigfigs, snaplen, link_type = struct.unpack(f"{byte_order}HHiiii", header)
     if (major, minor) != (2, 4):
         raise CaptureError(f"unsupported PCAP version {major}.{minor}")
     if snaplen <= 0:
@@ -137,4 +135,3 @@ def _decode_safely(packet: Packet) -> None:
         packet.issues.append(ParseIssue("decoder", str(exc)))
         if not packet.info:
             packet.info = "Malformed packet"
-

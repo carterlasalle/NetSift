@@ -15,7 +15,9 @@ from .render import flows_json, flows_table, hexdump, packets_csv, packets_json,
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="netsift", description="Fast, safe PCAP exploration without Wireshark")
+    parser = argparse.ArgumentParser(
+        prog="netsift", description="Fast, safe PCAP exploration without Wireshark"
+    )
     parser.add_argument("--version", action="version", version="NetSift 0.1.0")
     commands = parser.add_subparsers(dest="command", required=True)
 
@@ -53,7 +55,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         capture = read_capture(args.capture)
         if args.command == "inspect":
             if args.index > len(capture.packets):
-                raise ValueError(f"packet {args.index} does not exist (capture has {len(capture.packets)})")
+                raise ValueError(
+                    f"packet {args.index} does not exist (capture has {len(capture.packets)})"
+                )
             packet = capture.packets[args.index - 1]
             print(json.dumps(packet.to_dict(include_raw=args.json), indent=2, sort_keys=True))
             if args.hexdump:
@@ -64,9 +68,18 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.command == "packets":
             if args.limit:
                 selected = selected[: args.limit]
-            render = {"table": packets_table, "json": packets_json, "jsonl": lambda p: packets_json(p, lines=True), "csv": packets_csv}[args.format]
-            print(render(selected))
-            return 2 if args.fail_on_malformed and any(packet.malformed for packet in selected) else 0
+            if args.format == "json":
+                output = packets_json(selected)
+            elif args.format == "jsonl":
+                output = packets_json(selected, lines=True)
+            elif args.format == "csv":
+                output = packets_csv(selected)
+            else:
+                output = packets_table(selected)
+            print(output)
+            return (
+                2 if args.fail_on_malformed and any(packet.malformed for packet in selected) else 0
+            )
         flows = summarize(selected)[: args.top]
         print(flows_json(flows) if args.format == "json" else flows_table(flows))
         return 0
@@ -84,4 +97,3 @@ def _positive_int(value: str) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

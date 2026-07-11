@@ -1,2 +1,1 @@
 """NetSift test suite."""
-

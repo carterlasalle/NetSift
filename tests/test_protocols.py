@@ -12,7 +12,9 @@ def ethernet(payload: bytes, ether_type: int = 0x0800) -> bytes:
     return bytes.fromhex("00112233445566778899aabb") + struct.pack("!H", ether_type) + payload
 
 
-def ipv4(payload: bytes, protocol: int, source: str = "10.0.0.1", destination: str = "8.8.8.8") -> bytes:
+def ipv4(
+    payload: bytes, protocol: int, source: str = "10.0.0.1", destination: str = "8.8.8.8"
+) -> bytes:
     return (
         bytes([0x45, 0])
         + struct.pack("!H", 20 + len(payload))
@@ -43,13 +45,23 @@ class ProtocolTests(unittest.TestCase):
 
     def test_decodes_vlan_and_tcp_flags(self) -> None:
         tcp = struct.pack("!HHIIBBHHH", 44444, 443, 1, 0, 0x50, 0x02, 65535, 0, 0)
-        frame = bytes.fromhex("00112233445566778899aabb") + struct.pack("!HHH", 0x8100, 42, 0x0800) + ipv4(tcp, 6)
+        frame = (
+            bytes.fromhex("00112233445566778899aabb")
+            + struct.pack("!HHH", 0x8100, 42, 0x0800)
+            + ipv4(tcp, 6)
+        )
         result = packet(frame)
         self.assertEqual(result.details["vlan"][0]["id"], 42)
         self.assertEqual(result.details["tcp"]["flags"], ["SYN"])
 
     def test_decodes_arp_request(self) -> None:
-        arp = struct.pack("!HHBBH", 1, 0x0800, 6, 4, 1) + bytes.fromhex("66778899aabb") + bytes([10,0,0,1]) + b"\0" * 6 + bytes([10,0,0,2])
+        arp = (
+            struct.pack("!HHBBH", 1, 0x0800, 6, 4, 1)
+            + bytes.fromhex("66778899aabb")
+            + bytes([10, 0, 0, 1])
+            + b"\0" * 6
+            + bytes([10, 0, 0, 2])
+        )
         result = packet(ethernet(arp, 0x0806))
         self.assertEqual(result.highest_protocol, "arp")
         self.assertIn("Who has 10.0.0.2", result.info)

@@ -32,7 +32,7 @@ def decode_packet(packet: Packet) -> None:
             _linux_sll(packet, packet.raw)
         elif packet.link_type in {101, 228, 229}:
             version = packet.raw[0] >> 4 if packet.raw else 0
-            ( _ipv4 if version == 4 else _ipv6)(packet, packet.raw)
+            (_ipv4 if version == 4 else _ipv6)(packet, packet.raw)
         else:
             packet.protocols.append("data")
             packet.info = f"Unsupported link type {packet.link_type} ({len(packet.raw)} bytes)"
@@ -213,7 +213,20 @@ def _tcp(packet: Packet, data: bytes) -> None:
         raise ValueError("invalid TCP header length")
     _need(data, header_length, "TCP options")
     flags = data[13]
-    names = [name for bit, name in [(1,"FIN"),(2,"SYN"),(4,"RST"),(8,"PSH"),(16,"ACK"),(32,"URG"),(64,"ECE"),(128,"CWR")] if flags & bit]
+    names = [
+        name
+        for bit, name in [
+            (1, "FIN"),
+            (2, "SYN"),
+            (4, "RST"),
+            (8, "PSH"),
+            (16, "ACK"),
+            (32, "URG"),
+            (64, "ECE"),
+            (128, "CWR"),
+        ]
+        if flags & bit
+    ]
     packet.source_port, packet.destination_port = source, destination
     packet.details["tcp"] = {
         "source_port": source,
@@ -237,7 +250,11 @@ def _udp(packet: Packet, data: bytes) -> None:
         raise ValueError("invalid UDP length")
     payload = data[8 : min(length, len(data))]
     packet.source_port, packet.destination_port = source, destination
-    packet.details["udp"] = {"source_port": source, "destination_port": destination, "length": length}
+    packet.details["udp"] = {
+        "source_port": source,
+        "destination_port": destination,
+        "length": length,
+    }
     packet.info = f"{source} → {destination} len={len(payload)}"
     _application(packet, payload, source, destination, tcp=False)
 
@@ -250,7 +267,9 @@ def _icmp(packet: Packet, data: bytes, ipv6: bool) -> None:
     packet.info = f"type={data[0]} code={data[1]}"
 
 
-def _application(packet: Packet, payload: bytes, source: int, destination: int, *, tcp: bool) -> None:
+def _application(
+    packet: Packet, payload: bytes, source: int, destination: int, *, tcp: bool
+) -> None:
     ports = {source, destination}
     if 53 in ports:
         _dns(packet, payload[2:] if tcp and len(payload) >= 2 else payload)
@@ -297,7 +316,9 @@ def _dns_name(data: bytes, offset: int, *, depth: int = 0) -> tuple[str, int]:
 def _dns(packet: Packet, data: bytes) -> None:
     _need(data, 12, "DNS header")
     packet.protocols.append("dns")
-    identifier, flags, questions, answers, authority, additional = struct.unpack("!HHHHHH", data[:12])
+    identifier, flags, questions, answers, authority, additional = struct.unpack(
+        "!HHHHHH", data[:12]
+    )
     cursor = 12
     names: list[str] = []
     query_types: list[int] = []
@@ -324,7 +345,9 @@ def _dns(packet: Packet, data: bytes) -> None:
 
 
 def _looks_http(payload: bytes) -> bool:
-    return payload.startswith((b"GET ", b"POST ", b"PUT ", b"PATCH ", b"DELETE ", b"HEAD ", b"HTTP/"))
+    return payload.startswith(
+        (b"GET ", b"POST ", b"PUT ", b"PATCH ", b"DELETE ", b"HEAD ", b"HTTP/")
+    )
 
 
 def _http(packet: Packet, data: bytes) -> None:
@@ -338,7 +361,11 @@ def _http(packet: Packet, data: bytes) -> None:
             key, value = line.split(":", 1)
             headers[key.strip().lower()] = value.strip()
     packet.protocols.append("http")
-    packet.details["http"] = {"start_line": lines[0], "host": headers.get("host"), "headers": headers}
+    packet.details["http"] = {
+        "start_line": lines[0],
+        "host": headers.get("host"),
+        "headers": headers,
+    }
     packet.info = f"{lines[0]}" + (f" host={headers['host']}" if "host" in headers else "")
 
 
@@ -384,8 +411,17 @@ def _tls(packet: Packet, data: bytes) -> None:
                 for pos in range(1, min(len(value), value[0] + 1), 2):
                     if pos + 2 <= len(value):
                         raw = struct.unpack("!H", value[pos : pos + 2])[0]
-                        versions.append({0x0304:"TLS 1.3",0x0303:"TLS 1.2",0x0302:"TLS 1.1"}.get(raw, f"0x{raw:04x}"))
+                        versions.append(
+                            {0x0304: "TLS 1.3", 0x0303: "TLS 1.2", 0x0302: "TLS 1.1"}.get(
+                                raw, f"0x{raw:04x}"
+                            )
+                        )
             cursor += 4 + length
     packet.protocols.append("tls")
-    packet.details["tls"] = {"handshake": "ClientHello", "server_name": server_name, "alpn": alpn, "supported_versions": versions}
+    packet.details["tls"] = {
+        "handshake": "ClientHello",
+        "server_name": server_name,
+        "alpn": alpn,
+        "supported_versions": versions,
+    }
     packet.info = "ClientHello" + (f" SNI={server_name}" if server_name else "")

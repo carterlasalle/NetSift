@@ -108,4 +108,3 @@ def _equal(actual: object, expected: str) -> bool:
         except ValueError:
             return False
     return str(actual).casefold() == expected.casefold()
-

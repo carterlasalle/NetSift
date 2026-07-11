@@ -63,4 +63,3 @@ class Capture:
     timestamp_resolution: int
     link_type: int
     packets: list[Packet]
-

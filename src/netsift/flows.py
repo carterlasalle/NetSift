@@ -39,7 +39,13 @@ def summarize(packets: list[Packet]) -> list[Flow]:
         protocol = packet.highest_protocol
         key = (endpoint_a, endpoint_b, protocol)
         if key not in flows:
-            flows[key] = Flow(endpoint_a, endpoint_b, protocol, first_seen=packet.timestamp, last_seen=packet.timestamp)
+            flows[key] = Flow(
+                endpoint_a,
+                endpoint_b,
+                protocol,
+                first_seen=packet.timestamp,
+                last_seen=packet.timestamp,
+            )
         flow = flows[key]
         flow.packets += 1
         flow.bytes += packet.captured_length
@@ -54,4 +60,3 @@ def _endpoint(address: str | None, port: int | None) -> str:
     if port is None:
         return address
     return f"[{address}]:{port}" if ":" in address else f"{address}:{port}"
-

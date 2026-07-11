@@ -7,7 +7,15 @@ from netsift.flows import summarize
 from netsift.models import Packet
 
 
-def sample(index: int, *, proto: str = "dns", source: str = "10.0.0.1", destination: str = "8.8.8.8", source_port: int = 50000, destination_port: int = 53) -> Packet:
+def sample(
+    index: int,
+    *,
+    proto: str = "dns",
+    source: str = "10.0.0.1",
+    destination: str = "8.8.8.8",
+    source_port: int = 50000,
+    destination_port: int = 53,
+) -> Packet:
     packet = Packet(index, float(index), 60, 60, 1, b"")
     packet.protocols = ["ethernet", "ipv4", "udp", proto]
     packet.source, packet.destination = source, destination
@@ -32,7 +40,9 @@ class FilterTests(unittest.TestCase):
 class FlowTests(unittest.TestCase):
     def test_combines_both_directions(self) -> None:
         outbound = sample(1)
-        inbound = sample(2, source="8.8.8.8", destination="10.0.0.1", source_port=53, destination_port=50000)
+        inbound = sample(
+            2, source="8.8.8.8", destination="10.0.0.1", source_port=53, destination_port=50000
+        )
         flows = summarize([outbound, inbound])
         self.assertEqual(len(flows), 1)
         self.assertEqual(flows[0].packets, 2)
