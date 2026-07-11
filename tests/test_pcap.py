@@ -38,6 +38,25 @@ class PcapReaderTests(unittest.TestCase):
             with self.assertRaisesRegex(CaptureError, "truncated packet 1"):
                 read_capture(path)
 
+    def test_reads_pcapng_enhanced_packet(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "sample.pcapng"
+            packet = b"opaque"
+            section = struct.pack("<II IHHq I", 0x0A0D0D0A, 28, 0x1A2B3C4D, 1, 0, -1, 28)
+            interface = struct.pack("<IIHHII", 1, 20, 147, 0, 65535, 20)
+            padded = packet + b"\0" * ((-len(packet)) % 4)
+            length = 32 + len(padded)
+            enhanced = (
+                struct.pack("<IIIIIII", 6, length, 0, 0, 1_000_000, len(packet), len(packet))
+                + padded
+                + struct.pack("<I", length)
+            )
+            path.write_bytes(section + interface + enhanced)
+            capture = read_capture(path)
+        self.assertEqual(capture.format, "pcapng")
+        self.assertEqual(capture.packets[0].raw, packet)
+        self.assertEqual(capture.packets[0].timestamp, 1.0)
+
 
 if __name__ == "__main__":
     unittest.main()
