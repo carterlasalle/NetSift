@@ -1,0 +1,47 @@
+[build-system]
+requires = ["hatchling>=1.24"]
+build-backend = "hatchling.build"
+
+[project]
+name = "netsift"
+version = "0.1.0"
+description = "A dependency-free, defensive PCAP explorer for the terminal"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Carter LaSalle" }]
+keywords = ["pcap", "network", "cli", "security", "packet-analysis"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Environment :: Console",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Topic :: System :: Networking :: Monitoring",
+]
+
+[project.scripts]
+netsift = "netsift.cli:main"
+
+[project.urls]
+Repository = "https://github.com/carterlasalle/NetSift"
+Issues = "https://github.com/carterlasalle/NetSift/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/netsift"]
+
+[tool.pytest.ini_options]
+addopts = "--strict-markers -q"
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "RUF"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+packages = ["netsift"]
+
